@@ -1,6 +1,8 @@
 use std::fs;
 
-use crate::NymReleaseConfig;
+use serde::{Deserialize, Serialize};
+
+use crate::{prompt::AppSelectOption, NymReleaseConfig};
 
 pub struct NymConfigFileUtil {}
 
@@ -35,5 +37,32 @@ impl NymConfigFileUtil {
         })?;
 
         Ok(())
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct NymAssetUpdateConfig {
+    pub name: String,
+    pub auto_update: bool,
+    pub index: usize,
+}
+
+impl From<AppSelectOption> for NymAssetUpdateConfig {
+    fn from(option: AppSelectOption) -> Self {
+        NymAssetUpdateConfig {
+            name: option.name,
+            auto_update: option.checked,
+            index: option.index,
+        }
+    }
+}
+
+impl From<NymAssetUpdateConfig> for AppSelectOption {
+    fn from(config: NymAssetUpdateConfig) -> Self {
+        AppSelectOption {
+            name: config.name,
+            checked: config.auto_update,
+            index: config.index,
+        }
     }
 }
