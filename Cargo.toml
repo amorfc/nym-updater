@@ -14,4 +14,5 @@ serde = { version = "1.0.193", features = ["derive"] }
 serde_json = "1.0.108"
 serde_derive = "1.0.193"
 chrono = "0.4.31"
+inquire = "0.6.2"
 
