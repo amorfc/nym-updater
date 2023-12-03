@@ -16,8 +16,9 @@ Nym Updater provides an automatic update mechanism for Nym Tech products. The ap
 Ensure you have the following prerequisites installed:
 
 - [List any dependencies or requirements]
+- sudo apt update
+- sudo apt install build-essential
 
 ### Installation
 
 To install Nym Updater, follow these steps:
-
