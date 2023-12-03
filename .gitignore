@@ -1,1 +1,22 @@
-/target
+# Compiled files
+/target/
+
+# These directories include intermediate build files and should be ignored
+**/target
+**/*.rs.bk
+
+# Ignore Cargo.lock in libraries
+# Uncomment when creating a library
+#/Cargo.lock
+
+# Ignore .env file containing environment variables
+.env
+
+# Ignore files related to IDE
+.idea/
+*.iml
+*.swp
+.DS_Store
+.vscode/
+auto_update_config.json
+```
