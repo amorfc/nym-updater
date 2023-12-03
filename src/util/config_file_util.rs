@@ -2,7 +2,7 @@ use std::fs;
 
 use serde::{Deserialize, Serialize};
 
-use crate::{prompt::AppSelectOption, NymReleaseConfig};
+use crate::prompt::AppSelectOption;
 
 pub struct NymConfigFileUtil {}
 
@@ -37,6 +37,28 @@ impl NymConfigFileUtil {
         })?;
 
         Ok(())
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct NymReleaseConfig {
+    pub release_tag: String,
+    pub assets: Vec<NymAssetUpdateConfig>,
+}
+
+impl NymReleaseConfig {
+    pub fn from_app_select_options(release_tag: String, assets: Vec<AppSelectOption>) -> Self {
+        NymReleaseConfig {
+            release_tag,
+            assets: assets.into_iter().map(|asset| asset.into()).collect(),
+        }
+    }
+
+    pub fn as_app_select_options(&self) -> Vec<AppSelectOption> {
+        self.assets
+            .iter()
+            .map(|asset| asset.clone().into())
+            .collect()
     }
 }
 
