@@ -73,7 +73,6 @@ impl NymUpdateAssetSelectPrompt {
                     };
                     result.push(final_option);
                 }
-                println!("List of selected options: {:?}", result);
 
                 return Some(result);
             }
