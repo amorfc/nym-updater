@@ -8,7 +8,7 @@ mod util;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let maybe_current_config = NymConfigFileUtil::read_config_file()?;
+    let maybe_current_config = NymConfigFileUtil::read_config_file();
     let selected_options =
         maybe_current_config.and_then(|config| Some(config.as_app_select_options()));
 

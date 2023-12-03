@@ -8,17 +8,21 @@ pub struct NymConfigFileUtil {}
 
 const NYM_CONFIG_FILE_NAME: &str = "auto_update_config.json";
 impl NymConfigFileUtil {
-    pub fn read_config_file() -> Result<Option<NymReleaseConfig>, String> {
-        let config_file = fs::read_to_string(NYM_CONFIG_FILE_NAME).map_err(|e| {
-            format!(
-                "Error while reading file {} with {} error",
-                NYM_CONFIG_FILE_NAME, e
-            )
-        })?;
+    pub fn read_config_file() -> Option<NymReleaseConfig> {
+        let config_file = match fs::read_to_string(NYM_CONFIG_FILE_NAME) {
+            Ok(file) => file,
+            Err(e) => {
+                println!(
+                    "Error while reading file {} with {} error",
+                    NYM_CONFIG_FILE_NAME, e
+                );
+                return None;
+            }
+        };
 
         let current_config = serde_json::from_str::<NymReleaseConfig>(&config_file).ok();
 
-        Ok(current_config)
+        current_config
     }
 
     pub fn write_config_file(config: &NymReleaseConfig) -> Result<(), String> {
