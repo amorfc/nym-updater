@@ -8,8 +8,9 @@ mod util;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let current_config = NymConfigFileUtil::read_config_file()?;
-    let selected_options = current_config.and_then(|config| Some(config.as_app_select_options()));
+    let maybe_current_config = NymConfigFileUtil::read_config_file()?;
+    let selected_options =
+        maybe_current_config.and_then(|config| Some(config.as_app_select_options()));
 
     let prompt = NymUpdateAssetSelectPrompt::new(selected_options);
     let prompt_result = prompt.start();
