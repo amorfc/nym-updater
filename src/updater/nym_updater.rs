@@ -27,7 +27,7 @@ impl NymUpdater {
         })
     }
 
-    pub async fn check_asset_state(&self, asset: NymReleaseAssets) -> Result<AssetState, String> {
+    pub async fn check_asset_state(&self, asset: &NymReleaseAssets) -> Result<AssetState, String> {
         let asset_name = asset.name();
         let state = run_fun!(systemctl show -p ActiveState --value $asset_name).map_err(|e| {
             let err = format!(
@@ -51,10 +51,11 @@ impl NymUpdater {
         Ok(asset_state)
     }
 
-    pub async fn stop_mixnode(&self) -> Result<(), String> {
-        info!("Stopping mixnode...");
-        run_fun!(systemctl service nym-mixnode stop).map_err(|e| {
-            let err = format!("Error while stopping mixnode with {} error", e);
+    pub async fn stop_asset(&self, asset: &NymReleaseAssets) -> Result<(), String> {
+        let asset_name = asset.name();
+        info!("Stopping {}...", asset_name);
+        run_fun!(service $asset_name stop).map_err(|e| {
+            let err = format!("Error while stopping {} with {} error", asset_name, e);
             error!(err);
             err
         })?;
@@ -62,7 +63,7 @@ impl NymUpdater {
         Ok(())
     }
 
-    pub async fn install_latest(&self, asset: NymReleaseAssets) -> Result<(), String> {
+    pub async fn install_latest(&self, asset: &NymReleaseAssets) -> Result<(), String> {
         info!("Installing latest release...");
         let download_url = self.nym_github_client.latest_release_download_url(asset)?;
         let download_res = run_fun!(wget2 -q -O $download_url);
@@ -76,12 +77,14 @@ impl NymUpdater {
     pub async fn start_update(&self) -> Result<NymUpdateResult, String> {
         info!("Starting update...");
         info!("Latest release is {}", self.latest_github_release.tag_name);
-        let asset_state = self.check_asset_state(NymReleaseAssets::MixNode).await?;
 
-        self.install_latest(NymReleaseAssets::MixNode).await?;
+        let temp_defined_asset = &NymReleaseAssets::MixNode;
+        let asset_state = self.check_asset_state(temp_defined_asset).await?;
+
+        self.install_latest(temp_defined_asset).await?;
         match asset_state {
             AssetState::Running => {
-                self.stop_mixnode().await?;
+                self.stop_asset(temp_defined_asset).await?;
             }
             AssetState::Stopped => todo!(),
             AssetState::NotAvailable => todo!(),

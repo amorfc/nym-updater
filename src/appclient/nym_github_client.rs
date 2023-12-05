@@ -68,7 +68,7 @@ impl NymGithubClient {
         }
     }
 
-    pub fn latest_release_download_url(&self, asset: NymReleaseAssets) -> Result<String, String> {
+    pub fn latest_release_download_url(&self, asset: &NymReleaseAssets) -> Result<String, String> {
         let download_base_url = format!(
             "https://github.com/{}/{}/releases/latest/download/",
             &self.owner, &self.repo
