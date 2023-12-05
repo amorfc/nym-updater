@@ -1,5 +1,5 @@
 use cmd::AppCmd;
-use tracing::{error, info};
+use tracing::info;
 
 use crate::util::init_logger;
 
@@ -15,12 +15,13 @@ const LOG_FILE_PREFIX: &str = "app.log";
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let _guard = init_logger(Some(LOG_FILE_DIR), LOG_FILE_PREFIX)?;
-
     info!("Starting app");
+
     drop(_guard);
-    let wget2 = "wget";
+    let wget2 = "wget2";
 
-    // let result = AppCmd::has_package(wget2)?;
+    AppCmd::install_if_not_exists(wget2)?;
 
+    info!("Stopping app");
     Ok(())
 }
