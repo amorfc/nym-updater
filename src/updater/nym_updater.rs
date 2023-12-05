@@ -3,12 +3,13 @@ use tracing::{error, info};
 
 use crate::{
     appclient::{GithubRelease, NymGithubClient},
-    cmd::AppCmd,
+    constants::NymReleaseAssets,
     util::{NymConfigFileUtil, NymReleaseConfig},
 };
 
 #[derive(Debug)]
 pub struct NymUpdater {
+    nym_github_client: NymGithubClient,
     latest_github_release: GithubRelease,
     local_release_config: NymReleaseConfig,
 }
@@ -17,10 +18,12 @@ impl NymUpdater {
     pub async fn init() -> Result<Self, String> {
         let latest_release = NymGithubClient::new().latest_nym_release().await?;
         let current_release = NymConfigFileUtil::read_config_file()?;
+        let nym_github_client = NymGithubClient::new();
 
         Ok(Self {
             latest_github_release: latest_release,
             local_release_config: current_release,
+            nym_github_client,
         })
     }
 
@@ -41,10 +44,35 @@ impl NymUpdater {
         Ok(())
     }
 
+    pub async fn stop_mixnode(&self) -> Result<(), String> {
+        info!("Stopping mixnode...");
+        run_fun!(systemctl service nym-mixnode stop).map_err(|e| {
+            let err = format!("Error while stopping mixnode with {} error", e);
+            error!(err);
+            err
+        })?;
+
+        Ok(())
+    }
+
+    pub async fn install_latest(&self, asset: NymReleaseAssets) -> Result<(), String> {
+        info!("Installing latest release...");
+        let download_url = self.nym_github_client.latest_release_download_url(asset)?;
+        let download_res = run_fun!(wget2 -q -O $download_url);
+        if download_res.is_err() {
+            return Err("Failed to download latest release".to_string());
+        }
+
+        Ok(())
+    }
+
     pub async fn start_update(&self) -> Result<NymUpdateResult, String> {
         info!("Starting update...");
         info!("Latest release is {}", self.latest_github_release.tag_name);
         self.is_mixnode_exists().await?;
+        self.install_latest(NymReleaseAssets::MixNode).await?;
+
+        self.stop_mixnode().await?;
 
         Ok(NymUpdateResult::Success)
     }

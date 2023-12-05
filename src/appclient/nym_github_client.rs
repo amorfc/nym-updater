@@ -2,24 +2,33 @@ use std::str::FromStr;
 
 use chrono::{DateTime, Utc};
 
+use crate::constants::NymReleaseAssets;
+
 use super::{
     GithubClConstructorParams, GithubClient, GithubRelease, GithubReleasesResponse, RestResponse,
 };
 
 #[derive(Debug)]
 pub struct NymGithubClient {
+    owner: String,
+    repo: String,
     client: GithubClient,
 }
 
 impl NymGithubClient {
     pub fn new() -> Self {
+        let repo = "nym".to_string();
+        let owner = "nymtech".to_string();
+
         let nym_params = GithubClConstructorParams {
-            owner: "nymtech".to_string(),
-            repo: "nym".to_string(),
+            owner: owner.clone(),
+            repo: repo.clone(),
             base_url: None,
         };
 
         NymGithubClient {
+            owner,
+            repo,
             client: GithubClient::new(nym_params),
         }
     }
@@ -56,6 +65,18 @@ impl NymGithubClient {
                 "Failed to find latest nym release with tag: {}",
                 nym_binaries_tag
             )),
+        }
+    }
+
+    pub fn latest_release_download_url(&self, asset: NymReleaseAssets) -> Result<String, String> {
+        let download_base_url = format!(
+            "https://github.com/{}/{}/releases/latest/download/",
+            &self.owner, &self.repo
+        );
+
+        match asset {
+            NymReleaseAssets::MixNode => Ok(format!("{}{}", download_base_url, asset.name())),
+            NymReleaseAssets::Gateway => Err("Gateway is not supported yet".to_string()),
         }
     }
 }
