@@ -1,5 +1,5 @@
 use cmd::AppCmd;
-use util::NymConfigFileUtil;
+use tracing::info;
 
 use crate::util::AppLogger;
 
@@ -13,15 +13,14 @@ const LOG_FILE_PREFIX: &str = "app.log";
 #[cmd_lib::main]
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    AppLogger::init_logger(LOG_FILE_PREFIX)?;
-
-    let maybe_current_config = NymConfigFileUtil::read_config_file();
-
-    let temp_tag_name = "0.11.0".to_string();
+    let _guard = AppLogger::init_logger(LOG_FILE_PREFIX)?;
+    info!("Starting app");
 
     let wget2 = "wget";
 
     let result = AppCmd::has_package(wget2)?;
+
+    info!("result: {}", result);
 
     Ok(())
 }
