@@ -6,6 +6,7 @@ use super::{
     GithubClConstructorParams, GithubClient, GithubRelease, GithubReleasesResponse, RestResponse,
 };
 
+#[derive(Debug)]
 pub struct NymGithubClient {
     client: GithubClient,
 }

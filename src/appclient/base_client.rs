@@ -1,6 +1,7 @@
 use reqwest::{header, Client, Method, StatusCode};
 use serde::de::DeserializeOwned;
 
+#[derive(Debug)]
 pub struct AppClient {
     base_url: String,
     client: Client,

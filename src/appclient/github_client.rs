@@ -1,5 +1,6 @@
 use super::{base_client::AppClient, GithubApiUrl, GithubReleasesResponse, RestResponse};
 
+#[derive(Debug)]
 pub struct GithubClient {
     owner: String,
     repo: String,
