@@ -1,26 +1,26 @@
 use cmd::AppCmd;
-use tracing::info;
+use tracing::{error, info};
 
-use crate::util::AppLogger;
+use crate::util::init_logger;
 
 mod appclient;
 mod cmd;
 mod constants;
 mod util;
 
+const LOG_FILE_DIR: &str = "./logs";
 const LOG_FILE_PREFIX: &str = "app.log";
 
 #[cmd_lib::main]
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let _guard = AppLogger::init_logger(LOG_FILE_PREFIX)?;
-    info!("Starting app");
+    let _guard = init_logger(Some(LOG_FILE_DIR), LOG_FILE_PREFIX)?;
 
+    info!("Starting app");
+    drop(_guard);
     let wget2 = "wget";
 
-    let result = AppCmd::has_package(wget2)?;
-
-    info!("result: {}", result);
+    // let result = AppCmd::has_package(wget2)?;
 
     Ok(())
 }

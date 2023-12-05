@@ -1,20 +1,36 @@
-use std::env;
+use std::{env, io};
 
+use tracing::{debug, error, info, trace, warn, Level};
 use tracing_appender::non_blocking::WorkerGuard;
+use tracing_subscriber::{
+    fmt::{self, writer::MakeWriterExt},
+    prelude::*,
+};
 
-pub struct AppLogger {}
+pub fn init_logger(
+    file_dir: Option<&str>,
+    file_name: &str,
+) -> Result<Option<WorkerGuard>, Box<dyn std::error::Error>> {
+    let mut guard = None;
 
-impl AppLogger {
-    pub fn init_logger(file_name: &str) -> Result<WorkerGuard, Box<dyn std::error::Error>> {
-        let current_dir = env::current_dir()
-            .expect("Failed to get current dir")
-            .display()
-            .to_string();
+    let file_log = file_dir
+        .map(|p| tracing_appender::non_blocking(tracing_appender::rolling::daily(p, file_name)))
+        .map(|(none_blocking, g)| {
+            guard = Some(g);
+            fmt::Layer::new()
+                .with_ansi(false)
+                .with_writer(none_blocking.with_max_level(Level::WARN))
+        })
+        .unwrap();
 
-        let file_appender = tracing_appender::rolling::hourly(current_dir, file_name);
-        let (file_writer, guard) = tracing_appender::non_blocking(file_appender);
-        tracing_subscriber::fmt().with_writer(file_writer).init();
+    let console_log = fmt::Layer::new()
+        .with_ansi(true)
+        .with_writer(io::stderr.with_min_level(Level::WARN).or_else(io::stdout));
 
-        Ok(guard)
-    }
+    let subscriber = tracing_subscriber::registry()
+        .with(console_log)
+        .with(file_log);
+
+    subscriber.try_init()?;
+    Ok(guard)
 }
