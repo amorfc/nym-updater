@@ -31,7 +31,7 @@ impl AppCmd {
 
         let installing = format!("installing package -> '{}'", package_name);
         run_cmd!(echo $installing)?;
-        run_cmd!(sudo apt-get install $package_name)?;
+        run_cmd!(sudo apt-get install $package_name -y -qq < "/dev/null")?;
 
         let installed = format!("package installed -> '{}'", package_name);
         run_cmd!(echo $installed)?;
