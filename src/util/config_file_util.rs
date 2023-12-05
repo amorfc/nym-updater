@@ -24,7 +24,7 @@ impl NymConfigFileUtil {
     }
 
     pub fn _write_config_file(config: &NymReleaseConfig) -> Result<(), String> {
-        let config_file = serde_json::to_string(&config).map_err(|e| {
+        let config_file = serde_json::to_string_pretty(&config).map_err(|e| {
             format!(
                 "Error while serializing config file with {} error",
                 e.to_string()
