@@ -31,7 +31,7 @@ impl NymUpdater {
                 error!(err);
                 err
             })?
-            .contains("active");
+            .eq("active");
 
         info!("Mixnode exists on sytemd: {}", is_active_systemd);
         Ok(true)
