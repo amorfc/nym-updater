@@ -18,4 +18,5 @@
 *.swp
 .DS_Store
 .vscode/
+app.log*
 ```
