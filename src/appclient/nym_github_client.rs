@@ -37,7 +37,7 @@ impl NymGithubClient {
         }
     }
 
-    pub async fn latest_nym_release(&self) -> Result<Option<GithubRelease>, String> {
+    pub async fn latest_nym_release(&self) -> Result<GithubRelease, String> {
         let nym_binaries_tag = "nym-binaries";
         let releases_list = self.latest_nym_release_list().await?;
         let latest_nym_binaries_release = releases_list
@@ -50,6 +50,12 @@ impl NymGithubClient {
                 })
             });
 
-        Ok(latest_nym_binaries_release)
+        match latest_nym_binaries_release {
+            Some(release) => Ok(release),
+            None => Err(format!(
+                "Failed to find latest nym release with tag: {}",
+                nym_binaries_tag
+            )),
+        }
     }
 }
