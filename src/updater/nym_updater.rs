@@ -92,9 +92,10 @@ impl NymUpdater {
             return NymUpdateResult::NotNecessary;
         }
 
-        self.start_update()
-            .await
-            .unwrap_or_else(|e| return NymUpdateResult::Failure(e));
+        self.start_update().await.unwrap_or_else(|e| {
+            error!("Failed to start update: {}", e);
+            return NymUpdateResult::Failure(e);
+        });
 
         NymUpdateResult::Success
     }
