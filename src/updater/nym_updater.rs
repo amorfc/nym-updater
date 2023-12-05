@@ -27,21 +27,28 @@ impl NymUpdater {
         })
     }
 
-    pub async fn is_mixnode_exists(&self) -> Result<(), String> {
-        let has_mixnode_with_systemd = run_fun!(systemctl show -p ActiveState --value nym-mixnode)
-            .map_err(|e| {
-                let err = format!("Error while checking if mixnode exists with {} error", e);
-                error!(err);
-                err
-            })?
-            .eq("active");
+    pub async fn check_asset_state(&self, asset: NymReleaseAssets) -> Result<AssetState, String> {
+        let asset_name = asset.name();
+        let state = run_fun!(systemctl show -p ActiveState --value $asset_name).map_err(|e| {
+            let err = format!(
+                "Error while checking if {} exists with {} error",
+                asset_name, e
+            );
+            error!(err);
+            err
+        })?;
 
-        if !has_mixnode_with_systemd {
-            return Err("Mixnode does not exist on systemd".to_string());
-        }
+        let asset_state = match state.as_str() {
+            "active" => AssetState::Running,
+            "inactive" => AssetState::Stopped,
+            _ => {
+                error!("Mixnode does not exist on systemd");
+                return Err("Mixnode does not exist on systemd".to_string());
+            }
+        };
 
         info!("Mixnode exists on sytemd");
-        Ok(())
+        Ok(asset_state)
     }
 
     pub async fn stop_mixnode(&self) -> Result<(), String> {
@@ -69,10 +76,16 @@ impl NymUpdater {
     pub async fn start_update(&self) -> Result<NymUpdateResult, String> {
         info!("Starting update...");
         info!("Latest release is {}", self.latest_github_release.tag_name);
-        self.is_mixnode_exists().await?;
-        self.install_latest(NymReleaseAssets::MixNode).await?;
+        let asset_state = self.check_asset_state(NymReleaseAssets::MixNode).await?;
 
-        self.stop_mixnode().await?;
+        self.install_latest(NymReleaseAssets::MixNode).await?;
+        match asset_state {
+            AssetState::Running => {
+                self.stop_mixnode().await?;
+            }
+            AssetState::Stopped => todo!(),
+            AssetState::NotAvailable => todo!(),
+        }
 
         Ok(NymUpdateResult::Success)
     }
@@ -99,6 +112,12 @@ impl NymUpdater {
 
         NymUpdateResult::Success
     }
+}
+
+pub enum AssetState {
+    Running,
+    Stopped,
+    NotAvailable,
 }
 
 pub enum NymUpdateResult {
