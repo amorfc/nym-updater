@@ -1,5 +1,6 @@
 {
   "release_tag": "0.11.0",
+  "nym_path": "",
   "assets": [
     {
       "name": "nym-mixnode",

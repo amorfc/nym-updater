@@ -36,9 +36,11 @@ pub async fn run_update_cron() {
             };
 
             join!(async {
+                use updater::NymUpdateResult::*;
                 match updater.update_if_needed().await {
-                    Ok(_) => info!("update successful"),
-                    Err(message) => info!("update failed: {}", message),
+                    Success => info!("Updater succeeded"),
+                    NotNecessary => info!("No update needed"),
+                    Failure(msg) => error!("Updater failed: {}", msg),
                 }
             });
 

@@ -50,6 +50,7 @@ impl NymConfigFileUtil {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NymReleaseConfig {
     pub release_tag: String,
+    pub nym_path: String,
     pub assets: Vec<NymAssetUpdateConfig>,
 }
 
