@@ -1,7 +1,9 @@
-use tracing::info;
+use cmd_lib::run_fun;
+use tracing::{error, info};
 
 use crate::{
     appclient::{GithubRelease, NymGithubClient},
+    cmd::AppCmd,
     util::{NymConfigFileUtil, NymReleaseConfig},
 };
 
@@ -13,8 +15,7 @@ pub struct NymUpdater {
 
 impl NymUpdater {
     pub async fn init() -> Result<Self, String> {
-        let nym_github_client = NymGithubClient::new();
-        let latest_release = nym_github_client.latest_nym_release().await?;
+        let latest_release = NymGithubClient::new().latest_nym_release().await?;
         let current_release = NymConfigFileUtil::read_config_file()?;
 
         Ok(Self {
@@ -22,9 +23,29 @@ impl NymUpdater {
             local_release_config: current_release,
         })
     }
-    pub async fn start_update() {}
 
-    pub async fn update_if_needed(&self) -> Result<(), String> {
+    pub async fn is_mixnode_exists(&self) -> Result<bool, String> {
+        let is_active_systemd = run_fun!(systemctl show -p ActiveState --value nym-mixnode)
+            .map_err(|e| {
+                let err = format!("Error while checking if mixnode exists with {} error", e);
+                error!(err);
+                err
+            })?
+            .contains("active");
+
+        info!("Mixnode exists on sytemd: {}", is_active_systemd);
+        Ok(true)
+    }
+
+    pub async fn start_update(&self) -> Result<NymUpdateResult, String> {
+        info!("Starting update...");
+        info!("Latest release is {}", self.latest_github_release.tag_name);
+        self.is_mixnode_exists().await?;
+
+        Ok(NymUpdateResult::Success)
+    }
+
+    pub async fn update_if_needed(&self) -> NymUpdateResult {
         info!("Checking for updates...");
         info!("Latest release is {}", self.latest_github_release.tag_name);
         info!(
@@ -36,10 +57,19 @@ impl NymUpdater {
             self.latest_github_release.tag_name != self.local_release_config.release_tag;
 
         if !is_update_needed {
-            info!("No update needed");
-            return Ok(());
+            return NymUpdateResult::NotNecessary;
         }
 
-        Ok(())
+        self.start_update()
+            .await
+            .unwrap_or_else(|e| return NymUpdateResult::Failure(e));
+
+        NymUpdateResult::Success
     }
+}
+
+pub enum NymUpdateResult {
+    Success,
+    NotNecessary,
+    Failure(String),
 }

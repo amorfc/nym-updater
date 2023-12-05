@@ -4,6 +4,10 @@ use tracing::info;
 pub struct AppCmd {}
 
 impl AppCmd {
+    pub fn echo(msg: &str) -> Result<(), Box<dyn std::error::Error>> {
+        run_cmd!(echo $msg)?;
+        Ok(())
+    }
     pub fn has_package(package_name: &str) -> Result<bool, Box<dyn std::error::Error>> {
         info!("checking if package exists -> '{}'", package_name);
 
@@ -22,7 +26,6 @@ impl AppCmd {
         info!("package exists -> '{}'", package_name);
         Ok(contains_in_result)
     }
-
     pub fn install_if_not_exists(package_name: &str) -> Result<(), Box<dyn std::error::Error>> {
         let exists = AppCmd::has_package(package_name)?;
         if exists {
