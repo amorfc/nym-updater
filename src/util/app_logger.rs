@@ -25,7 +25,7 @@ pub fn init_logger(
 
     let console_log = fmt::Layer::new()
         .with_ansi(true)
-        .with_writer(io::stderr.with_min_level(Level::INFO).or_else(io::stdout));
+        .with_writer(io::stderr.with_max_level(Level::INFO));
 
     let subscriber = tracing_subscriber::registry()
         .with(console_log)
