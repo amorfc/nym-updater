@@ -1,6 +1,6 @@
-use std::{env, io};
+use std::io;
 
-use tracing::{debug, error, info, trace, warn, Level};
+use tracing::Level;
 use tracing_appender::non_blocking::WorkerGuard;
 use tracing_subscriber::{
     fmt::{self, writer::MakeWriterExt},
@@ -19,13 +19,13 @@ pub fn init_logger(
             guard = Some(g);
             fmt::Layer::new()
                 .with_ansi(false)
-                .with_writer(none_blocking.with_max_level(Level::WARN))
+                .with_writer(none_blocking.with_max_level(Level::INFO))
         })
         .unwrap();
 
     let console_log = fmt::Layer::new()
         .with_ansi(true)
-        .with_writer(io::stderr.with_min_level(Level::WARN).or_else(io::stdout));
+        .with_writer(io::stderr.with_min_level(Level::INFO).or_else(io::stdout));
 
     let subscriber = tracing_subscriber::registry()
         .with(console_log)
