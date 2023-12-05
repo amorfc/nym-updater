@@ -24,7 +24,7 @@ impl NymUpdater {
         })
     }
 
-    pub async fn is_mixnode_exists(&self) -> Result<bool, String> {
+    pub async fn is_mixnode_exists(&self) -> Result<(), String> {
         let has_mixnode_with_systemd = run_fun!(systemctl show -p ActiveState --value nym-mixnode)
             .map_err(|e| {
                 let err = format!("Error while checking if mixnode exists with {} error", e);
@@ -38,7 +38,7 @@ impl NymUpdater {
         }
 
         info!("Mixnode exists on sytemd");
-        Ok(has_mixnode_with_systemd)
+        Ok(())
     }
 
     pub async fn start_update(&self) -> Result<NymUpdateResult, String> {
