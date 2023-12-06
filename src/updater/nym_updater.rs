@@ -104,15 +104,16 @@ impl NymUpdater {
         asset: &NymReleaseAssets,
         path: String,
     ) -> Result<String, String> {
-        let res = run_fun!($path --version | grep "Build Version" | cut -b 21-26).map_err(|e| {
-            let err = format!(
-                "Error while getting {} version with {} error",
-                asset.name(),
-                e
-            );
-            error!(err);
-            err
-        })?;
+        let res =
+            run_fun!($path --version | grep "Build Version" | awk "{print $3}").map_err(|e| {
+                let err = format!(
+                    "Error while getting {} version with {} error",
+                    asset.name(),
+                    e
+                );
+                error!(err);
+                err
+            })?;
 
         Ok(res)
     }
