@@ -102,15 +102,20 @@ impl NymUpdater {
     }
 
     pub async fn current_asset_version(&self, asset: &NymReleaseAssets) -> Result<String, String> {
+        let asset_name = asset.name();
         let asset_path = self.systemd_asset_path(asset).await?.trim().to_string();
         let res = self.asset_build_version(asset, asset_path).await?;
+        info!("Current {} version is {}", asset_name, res);
         Ok(res)
     }
 
     pub async fn latest_asset_version(&self, asset: &NymReleaseAssets) -> Result<String, String> {
-        let asset_path = "./".to_string() + asset.name();
+        let asset_name = asset.name();
+        let asset_path = "./".to_string() + asset_name;
         self.install_latest(asset).await?;
         let res = self.asset_build_version(asset, asset_path).await?;
+
+        info!("Latest Asset Version {} version is {}", asset_name, res);
         Ok(res)
     }
 
@@ -122,20 +127,11 @@ impl NymUpdater {
 
         let current_asset_state = self.current_asset_state(temp_defined_asset).await?;
         let current_asset_version = self.current_asset_version(temp_defined_asset).await?;
-
-        info!(
-            "Current {} version is {}",
-            temp_defined_asset.name(),
-            current_asset_version
-        );
-
         let latest_asset_version = self.latest_asset_version(temp_defined_asset).await?;
 
-        info!(
-            "Latest Asset Version {} version is {}",
-            temp_defined_asset.name(),
-            latest_asset_version
-        );
+        if current_asset_version == latest_asset_version {
+            return Ok(NymUpdateResult::NotNecessary);
+        }
 
         match current_asset_state {
             AssetState::Running => {
