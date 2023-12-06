@@ -68,8 +68,6 @@ impl NymUpdater {
         let download_res = run_fun!(wget2 -N -O $path $download_url)
             .map_err(|e| format!("Error while downloading latest release with {} error", e))?;
 
-        info!("Downloaded latest release: {}", download_res);
-
         run_fun!(chmod u+x $path)
             .map_err(|e| format!("Error while chmod {} with {} error", asset.name(), e))?;
         Ok(())
@@ -110,7 +108,7 @@ impl NymUpdater {
     }
 
     pub async fn latest_asset_version(&self, asset: &NymReleaseAssets) -> Result<String, String> {
-        let asset_path = asset.name().to_string();
+        let asset_path = "./".to_string() + asset.name();
         self.install_latest(asset).await?;
         let res = self.asset_build_version(asset, asset_path).await?;
         Ok(res)
@@ -125,13 +123,13 @@ impl NymUpdater {
         let current_asset_state = self.current_asset_state(temp_defined_asset).await?;
         let current_asset_version = self.current_asset_version(temp_defined_asset).await?;
 
-        let latest_asset_version = self.latest_asset_version(temp_defined_asset).await?;
-
         info!(
             "Current {} version is {}",
             temp_defined_asset.name(),
             current_asset_version
         );
+
+        let latest_asset_version = self.latest_asset_version(temp_defined_asset).await?;
 
         info!(
             "Latest Asset Version {} version is {}",
