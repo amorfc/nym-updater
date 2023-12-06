@@ -131,15 +131,19 @@ impl NymUpdater {
         let asset_name = asset.name();
         let exec_start_line = run_fun!(systemctl show -p ExecStart --value $asset_name)
             .map_err(|e| format!("Error while getting mixnode systemd path with {} error", e))?;
+        info!(
+            "Current {} systemd service is {}",
+            asset_name, exec_start_line
+        );
 
-        let re = Regex::new(format!(r"ExecStart=({})(.*)", current_exec_path).as_str())
+        let re = Regex::new(r"argv\[\]=(.*?);")
             .map_err(|e| format!("Error while getting mixnode systemd path with {} error", e))?;
 
         let caps = re
             .captures(&exec_start_line)
             .ok_or("Error while getting mixnode systemd path with {} error")?;
 
-        let args = caps.get(2).map_or("", |m| m.as_str());
+        let args = caps.get(1).map_or("", |m| m.as_str());
 
         info!("Updating {} systemd service...", asset_name);
         info!(
