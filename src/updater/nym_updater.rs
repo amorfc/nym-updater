@@ -1,5 +1,5 @@
 use cmd_lib::run_fun;
-use tracing::info;
+use tracing::{error, info};
 
 use crate::{
     appclient::{GithubRelease, NymGithubClient},
@@ -104,13 +104,15 @@ impl NymUpdater {
 
     pub async fn current_asset_version(&self, asset: &NymReleaseAssets) -> Result<String, String> {
         let asset_path = self.systemd_asset_path(asset).await?;
-        self.asset_build_version(asset, asset_path).await
+        let res = self.asset_build_version(asset, asset_path).await?;
+        Ok(res)
     }
 
     pub async fn latest_asset_version(&self, asset: &NymReleaseAssets) -> Result<String, String> {
         let asset_path = asset.name().to_string();
         self.install_latest(asset).await?;
-        self.asset_build_version(asset, asset_path).await
+        let res = self.asset_build_version(asset, asset_path).await?;
+        Ok(res)
     }
 
     pub async fn start_update(&self) -> Result<NymUpdateResult, String> {
@@ -163,6 +165,7 @@ impl NymUpdater {
         }
 
         self.start_update().await.unwrap_or_else(|e| {
+            error!("Failed to start update: {}", e);
             return NymUpdateResult::Failure(format!("Failed to start update: {}", e));
         });
 
