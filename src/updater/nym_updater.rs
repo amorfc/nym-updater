@@ -1,5 +1,5 @@
 use cmd_lib::run_fun;
-use tracing::{error, info};
+use tracing::info;
 
 use crate::{
     appclient::{GithubRelease, NymGithubClient},
@@ -33,19 +33,16 @@ impl NymUpdater {
     ) -> Result<AssetState, String> {
         let asset_name = asset.name();
         let state = run_fun!(systemctl show -p ActiveState --value $asset_name).map_err(|e| {
-            let err = format!(
+            format!(
                 "Error while checking if {} exists with {} error",
                 asset_name, e
-            );
-            error!(err);
-            err
+            )
         })?;
 
         let asset_state = match state.as_str() {
             "active" => AssetState::Running,
             "inactive" => AssetState::Stopped,
             _ => {
-                error!("Mixnode does not exist on systemd");
                 return Err("Mixnode does not exist on systemd".to_string());
             }
         };
@@ -57,12 +54,8 @@ impl NymUpdater {
     pub async fn stop_asset(&self, asset: &NymReleaseAssets) -> Result<(), String> {
         let asset_name = asset.name();
         info!("Stopping {}...", asset_name);
-        run_fun!(service $asset_name stop).map_err(|e| {
-            let err = format!("Error while stopping {} with {} error", asset_name, e);
-            error!(err);
-            err
-        })?;
-
+        run_fun!(service $asset_name stop)
+            .map_err(|e| format!("Error while stopping {} with {} error", asset_name, e))?;
         Ok(())
     }
 
@@ -76,23 +69,15 @@ impl NymUpdater {
 
         let path = asset.name();
 
-        run_fun!(chmod u+x $path).map_err(|e| {
-            let err = format!("Error while chmod {} with {} error", asset.name(), e);
-            error!(err);
-            err
-        })?;
-
+        run_fun!(chmod u+x $path)
+            .map_err(|e| format!("Error while chmod {} with {} error", asset.name(), e))?;
         Ok(())
     }
 
     pub async fn systemd_asset_path(&self, asset: &NymReleaseAssets) -> Result<String, String> {
         match asset {
             NymReleaseAssets::MixNode => {
-                let res = run_fun!(systemctl show -p ExecStart --value nym-mixnode | grep -o "path=[^;]*" | cut -d= -f2).map_err(|e| {
-                    let err = format!("Error while getting mixnode systemd path with {} error", e);
-                    error!(err);
-                    err
-                })?;
+                let res = run_fun!(systemctl show -p ExecStart --value nym-mixnode | grep -o "path=[^;]*" | cut -d= -f2).map_err(|e| format!("Error while getting mixnode systemd path with {} error", e))?;
                 Ok(res)
             }
             NymReleaseAssets::Gateway => Err("Gateway not supported yet".to_string()),
@@ -102,18 +87,17 @@ impl NymUpdater {
     pub async fn asset_build_version(
         &self,
         asset: &NymReleaseAssets,
-        path: String,
+        bin_path: String,
     ) -> Result<String, String> {
-        let res =
-            run_fun!($path --version | grep "Build Version" | awk "{print $3}").map_err(|e| {
-                let err = format!(
+        let res = run_fun!($bin_path --version | grep "Build Version" | awk "{print $3}").map_err(
+            |e| {
+                format!(
                     "Error while getting {} version with {} error",
                     asset.name(),
                     e
-                );
-                error!(err);
-                err
-            })?;
+                )
+            },
+        )?;
 
         Ok(res)
     }
@@ -178,10 +162,9 @@ impl NymUpdater {
             return NymUpdateResult::NotNecessary;
         }
 
-        self.start_update().await.unwrap_or_else(|e| {
-            error!("Failed to start update: {}", e);
-            return NymUpdateResult::Failure(e);
-        });
+        self.start_update()
+            .await
+            .unwrap_or_else(|e| NymUpdateResult::Failure(format!("Failed to start update: {}", e)));
 
         NymUpdateResult::Success
     }
