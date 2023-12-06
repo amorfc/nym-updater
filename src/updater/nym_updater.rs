@@ -27,7 +27,7 @@ impl NymUpdater {
         })
     }
 
-    pub async fn check_asset_state(&self, asset: &NymReleaseAssets) -> Result<AssetState, String> {
+    pub async fn asset_state(&self, asset: &NymReleaseAssets) -> Result<AssetState, String> {
         let asset_name = asset.name();
         let state = run_fun!(systemctl show -p ActiveState --value $asset_name).map_err(|e| {
             let err = format!(
@@ -74,14 +74,33 @@ impl NymUpdater {
         Ok(())
     }
 
+    pub async fn systemd_asset_path(&self, asset: &NymReleaseAssets) -> Result<String, String> {
+        match asset {
+            NymReleaseAssets::MixNode => {
+                let res = run_fun!(systemctl show -p ExecStart --value nym-mixnode | grep -o "path=[^;]*" | cut -d= -f2).map_err(|e| {
+                    let err = format!("Error while getting mixnode systemd path with {} error", e);
+                    error!(err);
+                    err
+                })?;
+                Ok(res)
+            }
+            NymReleaseAssets::Gateway => Err("Gateway not supported yet".to_string()),
+        }
+    }
     pub async fn start_update(&self) -> Result<NymUpdateResult, String> {
         info!("Starting update...");
         info!("Latest release is {}", self.latest_github_release.tag_name);
 
         let temp_defined_asset = &NymReleaseAssets::MixNode;
-        let asset_state = self.check_asset_state(temp_defined_asset).await?;
-
+        let asset_state = self.asset_state(temp_defined_asset).await?;
+        let systemd_asset_path = self.systemd_asset_path(temp_defined_asset).await?;
+        info!(
+            "Systemd path is {} asset is {}",
+            systemd_asset_path,
+            temp_defined_asset.name()
+        );
         self.install_latest(temp_defined_asset).await?;
+
         match asset_state {
             AssetState::Running => {
                 self.stop_asset(temp_defined_asset).await?;
