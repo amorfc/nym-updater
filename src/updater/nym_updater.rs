@@ -107,13 +107,13 @@ impl NymUpdater {
     }
 
     pub async fn latest_asset_version(&self, asset: &NymReleaseAssets) -> Result<String, String> {
+        let asset_name = asset.name();
         self.install_latest(asset).await?;
-        let res = run_fun!(./nym-mixnode --version | grep "Build Version" | cut -b 21-26).map_err(
+        let res = run_fun!(./$asset_name --version | grep "Build Version" | cut -b 21-26).map_err(
             |e| {
                 let err = format!(
                     "Error while getting {} version with {} error",
-                    asset.name(),
-                    e
+                    asset_name, e
                 );
                 error!(err);
                 err
