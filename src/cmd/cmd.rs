@@ -26,6 +26,16 @@ impl AppCmd {
         info!("package exists -> '{}'", package_name);
         Ok(contains_in_result)
     }
+
+    pub fn realt_path(file_path: &str) -> Result<String, Box<dyn std::error::Error>> {
+        let res = run_fun!(realpath $file_path)?;
+        Ok(res)
+    }
+
+    pub fn give_x_o_permission(path: &str) -> Result<(), Box<dyn std::error::Error>> {
+        run_cmd!(chmod x+o $path)?;
+        Ok(())
+    }
     pub fn install_if_not_exists(package_name: &str) -> Result<(), Box<dyn std::error::Error>> {
         let exists = AppCmd::has_package(package_name)?;
         if exists {

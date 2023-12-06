@@ -609,6 +609,7 @@ version = "0.1.0"
 dependencies = [
  "chrono",
  "cmd_lib",
+ "regex",
  "reqwest",
  "serde",
  "serde_derive",
