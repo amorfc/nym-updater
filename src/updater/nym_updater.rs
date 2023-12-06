@@ -115,7 +115,7 @@ impl NymUpdater {
         self.install_latest(asset).await?;
         let res = self.asset_build_version(asset, asset_path).await?;
 
-        info!("Latest Asset Version {} version is {}", asset_name, res);
+        info!("Latest {} version is {}", asset_name, res);
         Ok(res)
     }
 
