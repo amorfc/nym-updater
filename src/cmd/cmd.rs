@@ -32,8 +32,8 @@ impl AppCmd {
         Ok(res)
     }
 
-    pub fn give_x_o_permission(path: &str) -> Result<(), Box<dyn std::error::Error>> {
-        run_cmd!(chmod x+o $path)?;
+    pub fn give_ux_permission(path: &str) -> Result<(), Box<dyn std::error::Error>> {
+        run_cmd!(chmod u+x $path)?;
         Ok(())
     }
     pub fn install_if_not_exists(package_name: &str) -> Result<(), Box<dyn std::error::Error>> {

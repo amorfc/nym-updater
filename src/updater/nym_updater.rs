@@ -70,7 +70,7 @@ impl NymUpdater {
         run_fun!(wget2 -O $path $download_url)
             .map_err(|e| format!("Error while downloading latest release with {} error", e))?;
 
-        AppCmd::give_x_o_permission(path)
+        AppCmd::give_ux_permission(path)
             .map_err(|e| format!("Error while chmod {} with {} error", asset.name(), e))?;
         Ok(())
     }
