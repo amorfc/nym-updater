@@ -74,6 +74,14 @@ impl NymUpdater {
             return Err("Failed to download latest release".to_string());
         }
 
+        let path = asset.name();
+
+        run_fun!(chmod u+x $path).map_err(|e| {
+            let err = format!("Error while chmod {} with {} error", asset.name(), e);
+            error!(err);
+            err
+        })?;
+
         Ok(())
     }
 
