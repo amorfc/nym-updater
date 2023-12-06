@@ -63,7 +63,7 @@ impl NymUpdater {
         info!("Installing latest release...");
         let download_url = self.nym_github_client.latest_release_download_url(asset)?;
         info!("Downloading latest release from {}", download_url);
-        let download_res = run_fun!(wget2 $download_url)
+        let download_res = run_fun!(wget2 -O $download_url)
             .map_err(|e| format!("Error while downloading latest release with {} error", e))?;
 
         info!("Downloaded latest release: {}", download_res);
