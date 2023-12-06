@@ -27,7 +27,10 @@ impl NymUpdater {
         })
     }
 
-    pub async fn asset_state(&self, asset: &NymReleaseAssets) -> Result<AssetState, String> {
+    pub async fn current_asset_state(
+        &self,
+        asset: &NymReleaseAssets,
+    ) -> Result<AssetState, String> {
         let asset_name = asset.name();
         let state = run_fun!(systemctl show -p ActiveState --value $asset_name).map_err(|e| {
             let err = format!(
@@ -87,21 +90,63 @@ impl NymUpdater {
             NymReleaseAssets::Gateway => Err("Gateway not supported yet".to_string()),
         }
     }
+
+    pub async fn current_asset_version(&self, asset: &NymReleaseAssets) -> Result<String, String> {
+        let asset_path = self.systemd_asset_path(asset).await?;
+        let res = run_fun!($asset_path - -version).map_err(|e| {
+            let err = format!(
+                "Error while getting {} version with {} error",
+                asset.name(),
+                e
+            );
+            error!(err);
+            err
+        })?;
+
+        Ok(res)
+    }
+
+    pub async fn latest_asset_version(&self, asset: &NymReleaseAssets) -> Result<String, String> {
+        self.install_latest(asset).await?;
+        let res = run_fun!(./nym-mixnode --version | grep "Build Version" | cut -b 21-26).map_err(
+            |e| {
+                let err = format!(
+                    "Error while getting {} version with {} error",
+                    asset.name(),
+                    e
+                );
+                error!(err);
+                err
+            },
+        )?;
+
+        Ok(res)
+    }
+
     pub async fn start_update(&self) -> Result<NymUpdateResult, String> {
         info!("Starting update...");
         info!("Latest release is {}", self.latest_github_release.tag_name);
 
         let temp_defined_asset = &NymReleaseAssets::MixNode;
-        let asset_state = self.asset_state(temp_defined_asset).await?;
-        let systemd_asset_path = self.systemd_asset_path(temp_defined_asset).await?;
-        info!(
-            "Systemd path is {} asset is {}",
-            systemd_asset_path,
-            temp_defined_asset.name()
-        );
-        self.install_latest(temp_defined_asset).await?;
 
-        match asset_state {
+        let current_asset_state = self.current_asset_state(temp_defined_asset).await?;
+        let current_asset_version = self.current_asset_version(temp_defined_asset).await?;
+
+        let latest_asset_version = self.latest_asset_version(temp_defined_asset).await?;
+
+        info!(
+            "Current {} version is {}",
+            temp_defined_asset.name(),
+            current_asset_version
+        );
+
+        info!(
+            "Latest Asset Version {} version is {}",
+            temp_defined_asset.name(),
+            latest_asset_version
+        );
+
+        match current_asset_state {
             AssetState::Running => {
                 self.stop_asset(temp_defined_asset).await?;
             }
