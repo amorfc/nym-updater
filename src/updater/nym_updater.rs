@@ -91,9 +91,12 @@ impl NymUpdater {
         }
     }
 
-    pub async fn current_asset_version(&self, asset: &NymReleaseAssets) -> Result<String, String> {
-        let asset_path = self.systemd_asset_path(asset).await?;
-        let res = run_fun!($asset_path - -version).map_err(|e| {
+    pub async fn asset_build_version(
+        &self,
+        asset: &NymReleaseAssets,
+        path: String,
+    ) -> Result<String, String> {
+        let res = run_fun!($path --version | grep "Build Version" | cut -b 21-26).map_err(|e| {
             let err = format!(
                 "Error while getting {} version with {} error",
                 asset.name(),
@@ -106,21 +109,15 @@ impl NymUpdater {
         Ok(res)
     }
 
-    pub async fn latest_asset_version(&self, asset: &NymReleaseAssets) -> Result<String, String> {
-        let asset_name = asset.name();
-        self.install_latest(asset).await?;
-        let res = run_fun!(./$asset_name --version | grep "Build Version" | cut -b 21-26).map_err(
-            |e| {
-                let err = format!(
-                    "Error while getting {} version with {} error",
-                    asset_name, e
-                );
-                error!(err);
-                err
-            },
-        )?;
+    pub async fn current_asset_version(&self, asset: &NymReleaseAssets) -> Result<String, String> {
+        let asset_path = self.systemd_asset_path(asset).await?;
+        self.asset_build_version(asset, asset_path).await
+    }
 
-        Ok(res)
+    pub async fn latest_asset_version(&self, asset: &NymReleaseAssets) -> Result<String, String> {
+        let asset_path = asset.name().to_string();
+        self.install_latest(asset).await?;
+        self.asset_build_version(asset, asset_path).await
     }
 
     pub async fn start_update(&self) -> Result<NymUpdateResult, String> {
