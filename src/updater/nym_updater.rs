@@ -65,7 +65,7 @@ impl NymUpdater {
         info!("Downloading latest release from {}", download_url);
         let path = asset.name();
 
-        let download_res = run_fun!(wget2 -N -O $path $download_url)
+        run_fun!(wget2 -O $path $download_url)
             .map_err(|e| format!("Error while downloading latest release with {} error", e))?;
 
         run_fun!(chmod u+x $path)
