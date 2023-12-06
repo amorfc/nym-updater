@@ -1,5 +1,5 @@
 use cmd_lib::run_fun;
-use tracing::{error, info};
+use tracing::info;
 
 use crate::{
     appclient::{GithubRelease, NymGithubClient},
@@ -103,7 +103,7 @@ impl NymUpdater {
     }
 
     pub async fn current_asset_version(&self, asset: &NymReleaseAssets) -> Result<String, String> {
-        let asset_path = self.systemd_asset_path(asset).await?;
+        let asset_path = self.systemd_asset_path(asset).await?.trim().to_string();
         let res = self.asset_build_version(asset, asset_path).await?;
         Ok(res)
     }
