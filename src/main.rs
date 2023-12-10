@@ -54,7 +54,7 @@ pub async fn run_update_cron() {
 }
 
 pub async fn run_sleep_period() {
-    let period_duration = Duration::from_secs(10);
+    let period_duration = Duration::from_secs(3600);
 
     sleep(period_duration).await;
 }
