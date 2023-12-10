@@ -45,6 +45,19 @@ impl NymConfigFileUtil {
 
         Ok(())
     }
+
+    pub fn update_release_tag(new_tag: String) -> Result<(), String> {
+        let mut config = Self::read_config_file().unwrap_or_else(|_| {
+            error!("Failed to read config file. Creating new one");
+            NymReleaseConfig {
+                release_tag: "".to_string(),
+                assets: vec![],
+            }
+        });
+
+        config.release_tag = new_tag;
+        Self::_write_config_file(&config)
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

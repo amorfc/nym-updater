@@ -267,8 +267,10 @@ impl NymUpdater {
             .await?;
         self.update_systemd_file(temp_defined_asset, latest_target_asset_path)
             .await?;
-
         self.start_asset_service(temp_defined_asset).await?;
+
+        NymConfigFileUtil::update_release_tag(self.latest_github_release.tag_name.clone())
+            .map_err(|e| format!("Error while updating release tag with {} error", e))?;
 
         Ok(NymUpdateResult::Success)
     }
