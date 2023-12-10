@@ -83,7 +83,7 @@ impl NymUpdater {
         }
     }
 
-    pub fn asset_build_version(
+    pub async fn asset_build_version(
         &self,
         asset: &NymReleaseAssets,
         bin_path: String,
@@ -101,19 +101,19 @@ impl NymUpdater {
         Ok(res)
     }
 
-    pub fn current_asset_version(&self, asset: &NymReleaseAssets) -> Result<String, String> {
+    pub async fn current_asset_version(&self, asset: &NymReleaseAssets) -> Result<String, String> {
         let asset_name = asset.name();
         let asset_path = self.systemd_asset_path(asset)?.trim().to_string();
-        let res = self.asset_build_version(asset, asset_path)?;
+        let res = self.asset_build_version(asset, asset_path).await?;
         info!("Current {} version is {}", asset_name, res);
         Ok(res)
     }
 
-    pub fn latest_asset_version(&self, asset: &NymReleaseAssets) -> Result<String, String> {
+    pub async fn latest_asset_version(&self, asset: &NymReleaseAssets) -> Result<String, String> {
         let asset_name = asset.name();
         let asset_path = "./".to_string() + asset_name;
         self.install_latest(asset)?;
-        let res = self.asset_build_version(asset, asset_path)?;
+        let res = self.asset_build_version(asset, asset_path).await?;
 
         info!("Latest {} version is {}", asset_name, res);
         Ok(res)
@@ -166,8 +166,8 @@ impl NymUpdater {
         let temp_defined_asset = &NymReleaseAssets::MixNode;
 
         let current_asset_state = self.current_asset_state(temp_defined_asset)?;
-        let current_asset_version = self.current_asset_version(temp_defined_asset)?;
-        let latest_asset_version = self.latest_asset_version(temp_defined_asset)?;
+        let current_asset_version = self.current_asset_version(temp_defined_asset).await?;
+        let latest_asset_version = self.latest_asset_version(temp_defined_asset).await?;
 
         let latest_target_asset_path = self.latest_target_asset_path(temp_defined_asset)?;
         if current_asset_version == latest_asset_version {
