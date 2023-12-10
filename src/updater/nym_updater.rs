@@ -215,7 +215,9 @@ impl NymUpdater {
             AssetState::Running => {
                 self.stop_asset_service(temp_defined_asset).await?;
             }
-            AssetState::Stopped => todo!(),
+            AssetState::Stopped => {
+                info!("Mixnode is already stopped");
+            }
             AssetState::NotAvailable => {
                 return Ok(NymUpdateResult::Failure(
                     "Mixnode does not exist on systemd".to_string(),
