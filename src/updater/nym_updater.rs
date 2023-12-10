@@ -212,7 +212,7 @@ impl NymUpdater {
         info!("Initing node...");
         let id = self.node_id().await?;
 
-        let ip = run_fun!(curl ipinfo.io/ip)
+        let ip = run_fun!(curl ipinfo.io | jq -r ".ip")
             .map_err(|e| format!("Error while getting ip address with {} error", e))?;
         info!("Initing node with id {} and ip {}", id, ip);
         let res = run_fun!(sudo $path init --id $id --host $ip)
