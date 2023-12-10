@@ -179,8 +179,10 @@ impl NymUpdater {
             "Updating {} systemd ExecStart value with {}",
             asset_name, exec_result_str
         );
-        let formatted_description_result =
-            format!("s|^Description=.*|Description={}|", version_result_str);
+        let formatted_description_result = format!(
+            "s|^Description=.*|Description=Nym {} {}|",
+            asset_name, version_result_str
+        );
         let formatted_exec_start_result = format!("s|^ExecStart=.*|ExecStart={}|", exec_result_str);
 
         run_fun!(sudo sed -i $formatted_exec_start_result /etc/systemd/system/nym-mixnode.service)
