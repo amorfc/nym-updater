@@ -131,7 +131,7 @@ impl NymUpdater {
 
         let current_systemd_asset_exec_path = self.systemd_asset_path(asset).await?;
         let full_exec_start_line =
-            run_fun!(systemctl show -p ExecStart --value $asset_name | grep -o r#"argv\[\]=[^;]*"#)
+            run_fun!(systemctl show -p ExecStart --value $asset_name | grep -o r#"argv\[\]=[^;]*"# | cut -d= -f2)
                 .map_err(|e| {
                     format!("Error while getting mixnode systemd path with {} error", e)
                 })?;
