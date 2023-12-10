@@ -122,22 +122,21 @@ impl NymUpdater {
         Ok(res)
     }
 
-    async fn update_systemd_service(
+    async fn update_systemd_file(
         &self,
         asset: &NymReleaseAssets,
-        current_exec_path: String,
         target_exec_path: String,
     ) -> Result<(), String> {
         let asset_name = asset.name();
         let exec_start_line = run_fun!(systemctl show -p ExecStart --value $asset_name)
             .map_err(|e| format!("Error while getting mixnode systemd path with {} error", e))?;
-        info!(
-            "Current {} systemd service is {}",
-            asset_name, exec_start_line
-        );
 
-        let re = Regex::new(r"argv\[\]=(.*?);")
-            .map_err(|e| format!("Error while getting mixnode systemd path with {} error", e))?;
+        let current_systemd_asset_exec_path = self.systemd_asset_path(asset).await?;
+        let re =
+            Regex::new(format!(r"argv\[\]={}(.*?);", current_systemd_asset_exec_path).as_str())
+                .map_err(|e| {
+                    format!("Error while getting mixnode systemd path with {} error", e)
+                })?;
 
         let caps = re
             .captures(&exec_start_line)
@@ -145,16 +144,9 @@ impl NymUpdater {
 
         let args = caps.get(1).map_or("", |m| m.as_str());
 
-        info!("Updating {} systemd service...", asset_name);
-        info!(
-            "Current {} systemd service is {}",
-            asset_name, exec_start_line
-        );
-        info!(
-            "New {} systemd service is {}",
-            asset_name,
-            format!("{}{}", target_exec_path, args)
-        );
+        let result_str = args.replace(&current_systemd_asset_exec_path, &target_exec_path);
+
+        info!("New ExecStart full str {}", result_str,);
 
         // run_fun!(sudo sed -i "s|ExecStart=/root/nym/target/release/nym-mixnode$args|ExecStart=/root/nym-updater/nym-mixnode$args|" /etc/systemd/system/nym-mixnode.service)?;
         // run_fun!(sudo systemctl daemon-reload)?;
@@ -180,12 +172,8 @@ impl NymUpdater {
                 )
             })?;
 
-        self.update_systemd_service(
-            temp_defined_asset,
-            current_systemd_asset_path,
-            real_path_latest_assets,
-        )
-        .await?;
+        self.update_systemd_file(temp_defined_asset, real_path_latest_assets)
+            .await?;
 
         if current_asset_version == latest_asset_version {
             return Ok(NymUpdateResult::NotNecessary);
