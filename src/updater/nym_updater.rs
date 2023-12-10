@@ -122,6 +122,12 @@ impl NymUpdater {
         Ok(res)
     }
 
+    pub async fn reload_systemd_daemon(&self) -> Result<(), String> {
+        run_fun!(sudo systemctl daemon-reload)
+            .map_err(|e| format!("Error while reloading systemd daemon with {} error", e))?;
+        Ok(())
+    }
+
     async fn update_systemd_file(
         &self,
         asset: &NymReleaseAssets,
@@ -147,9 +153,7 @@ impl NymUpdater {
         run_fun!(sudo sed -i $formatted_result /etc/systemd/system/nym-mixnode.service)
             .map_err(|e| format!("Error while updating mixnode systemd file with {} error", e))?;
 
-        run_fun!(sudo systemctl daemon-reload)
-            .map_err(|e| format!("Error while reloading systemd daemon with {} error", e))?;
-
+        self.reload_systemd_daemon().await?;
         Ok(())
     }
 
@@ -170,6 +174,8 @@ impl NymUpdater {
 
     pub async fn start_update(&self) -> Result<NymUpdateResult, String> {
         info!("Starting update...");
+        //Be sure that systemd daemon is reloaded to avoid any issues
+        self.reload_systemd_daemon().await?;
 
         let temp_defined_asset = &NymReleaseAssets::MixNode;
 
