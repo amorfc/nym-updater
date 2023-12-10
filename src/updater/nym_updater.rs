@@ -67,7 +67,7 @@ impl NymUpdater {
         info!("Downloading latest release from {}", download_url);
         let path_with_latest_tag = self.latest_asset_path(asset).await?;
 
-        run_fun!(wget2 -O $path_with_latest_tag $download_url)
+        run_fun!(wget2 -O -q $path_with_latest_tag $download_url)
             .map_err(|e| format!("Error while downloading latest release with {} error", e))?;
 
         AppCmd::give_ux_permission(&path_with_latest_tag).map_err(|e| {
