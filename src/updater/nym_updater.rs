@@ -142,7 +142,9 @@ impl NymUpdater {
             format!("{} ", target_exec_path).as_str(),
         );
 
-        run_fun!(sudo sed -i $result_str /etc/systemd/system/nym-mixnode.service)
+        let formatted_result = format!("s|^ExecStart=.*|ExecStart={}|", result_str);
+
+        run_fun!(sudo sed -i $formatted_result /etc/systemd/system/nym-mixnode.service)
             .map_err(|e| format!("Error while updating mixnode systemd file with {} error", e))?;
 
         run_fun!(sudo systemctl daemon-reload)
