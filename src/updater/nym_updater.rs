@@ -61,18 +61,22 @@ impl NymUpdater {
         Ok(())
     }
 
-    pub fn install_latest(&self, asset: &NymReleaseAssets) -> Result<(), String> {
+    pub async fn install_latest(&self, asset: &NymReleaseAssets) -> Result<String, String> {
         info!("Installing latest release...");
         let download_url = self.nym_github_client.latest_release_download_url(asset)?;
         info!("Downloading latest release from {}", download_url);
-        let path = asset.name();
+        let path_with_latest_tag = self.latest_asset_path(asset).await?;
 
-        run_fun!(wget2 -O $path $download_url)
+        run_fun!(wget2 -O $path_with_latest_tag $download_url)
             .map_err(|e| format!("Error while downloading latest release with {} error", e))?;
 
-        AppCmd::give_ux_permission(path)
-            .map_err(|e| format!("Error while chmod {} with {} error", asset.name(), e))?;
-        Ok(())
+        AppCmd::give_ux_permission(&path_with_latest_tag).map_err(|e| {
+            format!(
+                "Error while chmod {} with {} error",
+                path_with_latest_tag, e
+            )
+        })?;
+        Ok(path_with_latest_tag)
     }
 
     pub async fn systemd_asset_path(&self, asset: &NymReleaseAssets) -> Result<String, String> {
@@ -112,10 +116,18 @@ impl NymUpdater {
         Ok(res)
     }
 
+    pub async fn latest_asset_path(&self, asset: &NymReleaseAssets) -> Result<String, String> {
+        let asset_name = asset.name();
+        let path_with_latest_tag =
+            format!("{}-{}", self.latest_github_release.tag_name, asset_name);
+
+        Ok(path_with_latest_tag)
+    }
+
     pub async fn latest_asset_version(&self, asset: &NymReleaseAssets) -> Result<String, String> {
         let asset_name = asset.name();
-        let asset_path = "./".to_string() + asset_name;
-        self.install_latest(asset)?;
+        let path = self.install_latest(asset).await?;
+        let asset_path = "./".to_string() + &path;
         let res = self.asset_build_version(asset, asset_path).await?;
 
         info!("Latest {} version is {}", asset_name, res);
@@ -161,8 +173,8 @@ impl NymUpdater {
         &self,
         asset: &NymReleaseAssets,
     ) -> Result<String, String> {
-        let asset_name = asset.name();
-        let latest_target_asset_path = AppCmd::realt_path(asset_name).map_err(|e| {
+        let path_with_latest_tag = self.latest_asset_path(asset).await?;
+        let latest_target_asset_path = AppCmd::realt_path(&path_with_latest_tag).map_err(|e| {
             format!(
                 "Error while getting real path of latest assets with {} error",
                 e
@@ -193,7 +205,6 @@ impl NymUpdater {
         info!("Current asset version is {}", current_asset_version);
 
         let latest_asset_version = self.latest_asset_version(temp_defined_asset).await?;
-
         let latest_target_asset_path = self.latest_target_asset_path(temp_defined_asset).await?;
 
         if current_asset_version == latest_asset_version {
