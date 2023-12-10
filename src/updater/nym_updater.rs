@@ -132,21 +132,17 @@ impl NymUpdater {
             .map_err(|e| format!("Error while getting mixnode systemd path with {} error", e))?;
 
         let current_systemd_asset_exec_path = self.systemd_asset_path(asset).await?;
-        let re =
-            Regex::new(format!(r"argv\[\]={}(.*?);", current_systemd_asset_exec_path).as_str())
+        let full_exec_start_line =
+            run_fun!(systemctl show -p ExecStart --value $asset_name | grep -o r#"argv\[\]=[^;]*"#)
                 .map_err(|e| {
                     format!("Error while getting mixnode systemd path with {} error", e)
                 })?;
 
-        let caps = re
-            .captures(&exec_start_line)
-            .ok_or("Error while getting mixnode systemd path with {} error")?;
+        let result_str =
+            full_exec_start_line.replace(&current_systemd_asset_exec_path, &target_exec_path);
 
-        let args = caps.get(1).map_or("", |m| m.as_str());
-
-        let result_str = args.replace(&current_systemd_asset_exec_path, &target_exec_path);
-
-        info!("New ExecStart full str {}", result_str,);
+        info!("New ExecStart full str {}", result_str);
+        info!("Exec start line {}", exec_start_line);
 
         // run_fun!(sudo sed -i "s|ExecStart=/root/nym/target/release/nym-mixnode$args|ExecStart=/root/nym-updater/nym-mixnode$args|" /etc/systemd/system/nym-mixnode.service)?;
         // run_fun!(sudo systemctl daemon-reload)?;
