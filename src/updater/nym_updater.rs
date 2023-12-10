@@ -172,7 +172,7 @@ impl NymUpdater {
         );
 
         let version_result_str = self
-            .asset_build_version(asset, format!("./{}", target_exec_path))
+            .asset_build_version(asset, format!("{}", target_exec_path))
             .await?;
 
         info!(
