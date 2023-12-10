@@ -174,7 +174,10 @@ impl NymUpdater {
         let temp_defined_asset = &NymReleaseAssets::MixNode;
 
         let current_asset_state = self.current_asset_state(temp_defined_asset).await?;
+        info!("Current asset state is {:?}", current_asset_state);
         let current_asset_version = self.current_asset_version(temp_defined_asset).await?;
+        info!("Current asset version is {}", current_asset_version);
+
         let latest_asset_version = self.latest_asset_version(temp_defined_asset).await?;
 
         let latest_target_asset_path = self.latest_target_asset_path(temp_defined_asset).await?;
@@ -219,6 +222,7 @@ impl NymUpdater {
     }
 }
 
+#[derive(Debug)]
 pub enum AssetState {
     Running,
     Stopped,
