@@ -172,6 +172,14 @@ impl NymUpdater {
         Ok(latest_target_asset_path)
     }
 
+    pub async fn start_asset_service(&self, asset: &NymReleaseAssets) -> Result<(), String> {
+        let asset_name = asset.name();
+        info!("Restarting {}...", asset_name);
+        run_fun!(systemctl start $asset_name)
+            .map_err(|e| format!("Error while restarting {} with {} error", asset_name, e))?;
+        Ok(())
+    }
+
     pub async fn start_update(&self) -> Result<NymUpdateResult, String> {
         info!("Starting update...");
         //Be sure that systemd daemon is reloaded to avoid any issues
@@ -188,9 +196,6 @@ impl NymUpdater {
 
         let latest_target_asset_path = self.latest_target_asset_path(temp_defined_asset).await?;
 
-        self.update_systemd_file(temp_defined_asset, latest_target_asset_path)
-            .await?;
-
         if current_asset_version == latest_asset_version {
             return Ok(NymUpdateResult::NotNecessary);
         }
@@ -200,8 +205,17 @@ impl NymUpdater {
                 self.stop_asset_service(temp_defined_asset).await?;
             }
             AssetState::Stopped => todo!(),
-            AssetState::NotAvailable => todo!(),
+            AssetState::NotAvailable => {
+                return Ok(NymUpdateResult::Failure(
+                    "Mixnode does not exist on systemd".to_string(),
+                ))
+            }
         }
+
+        self.update_systemd_file(temp_defined_asset, latest_target_asset_path)
+            .await?;
+
+        self.start_asset_service(temp_defined_asset).await?;
 
         Ok(NymUpdateResult::Success)
     }
