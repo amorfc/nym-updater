@@ -49,7 +49,7 @@ impl NymUpdater {
             }
         };
 
-        info!("Mixnode exists on sytemd");
+        info!("Mixnode exists on sytemd with state {:?}", asset_state);
         Ok(asset_state)
     }
 
@@ -84,6 +84,7 @@ impl NymUpdater {
         match asset {
             NymReleaseAssets::MixNode => {
                 let res = run_fun!(systemctl show -p ExecStart --value $asset_name | grep -o "path=[^;]*" | cut -d= -f2).map_err(|e| format!("Error while getting mixnode systemd path with {} error", e))?;
+                info!("Mixnode systemd path is {}", res);
                 Ok(res)
             }
             NymReleaseAssets::Gateway => Err("Gateway not supported yet".to_string()),
@@ -125,6 +126,7 @@ impl NymUpdater {
     }
 
     pub async fn latest_asset_version(&self, asset: &NymReleaseAssets) -> Result<String, String> {
+        info!("Getting latest release version...");
         let asset_name = asset.name();
         let path = self.install_latest(asset).await?;
         let asset_path = "./".to_string() + &path;
@@ -134,9 +136,18 @@ impl NymUpdater {
         Ok(res)
     }
 
+    pub async fn node_id(&self) -> Result<String, String> {
+        let id = run_fun!(systemctl cat nym-mixnode | grep id | awk "{print $4}")
+            .map_err(|e| format!("Error while getting mixnode id with {} error", e))?;
+
+        Ok(id)
+    }
+
     pub async fn reload_systemd_daemon(&self) -> Result<(), String> {
+        info!("Reloading systemd daemon...");
         run_fun!(sudo systemctl daemon-reload)
             .map_err(|e| format!("Error while reloading systemd daemon with {} error", e))?;
+        info!("Systemd daemon reloaded");
         Ok(())
     }
 
@@ -146,12 +157,13 @@ impl NymUpdater {
         target_exec_path: String,
     ) -> Result<(), String> {
         let asset_name = asset.name();
+        info!("Updating {} systemd file...", asset_name);
 
         let current_systemd_asset_exec_path = self.systemd_asset_path(asset).await?;
         let full_exec_start_line =
             run_fun!(systemctl show -p ExecStart --value $asset_name | grep -o r#"argv\[\]=[^;]*"# | cut -d= -f2)
                 .map_err(|e| {
-                    format!("Error while getting mixnode systemd path with {} error", e)
+                    format!("Error while getting {} systemd path with {} error", asset_name,e)
                 })?;
 
         let result_str = full_exec_start_line.replace(
@@ -160,6 +172,10 @@ impl NymUpdater {
             format!("{} ", target_exec_path).as_str(),
         );
 
+        info!(
+            "Updating {} systemd ExecStart value with {}",
+            asset_name, result_str
+        );
         let formatted_result = format!("s|^ExecStart=.*|ExecStart={}|", result_str);
 
         run_fun!(sudo sed -i $formatted_result /etc/systemd/system/nym-mixnode.service)
@@ -181,14 +197,36 @@ impl NymUpdater {
             )
         })?;
 
+        info!(
+            "Latest target {} path is {}",
+            asset.name(),
+            latest_target_asset_path
+        );
+
         Ok(latest_target_asset_path)
     }
 
     pub async fn start_asset_service(&self, asset: &NymReleaseAssets) -> Result<(), String> {
         let asset_name = asset.name();
-        info!("Restarting {}...", asset_name);
+        info!("Starting {}...", asset_name);
         run_fun!(systemctl start $asset_name)
             .map_err(|e| format!("Error while restarting {} with {} error", asset_name, e))?;
+        let latest_asset_path = self.latest_target_asset_path(asset).await?;
+
+        info!(
+            "Successfully {} started release {}",
+            asset_name, latest_asset_path
+        );
+        Ok(())
+    }
+
+    pub async fn init_node_with_path(&self, path: String) -> Result<(), String> {
+        info!("Initing node...");
+        let id = self.node_id().await?;
+
+        let res = run_fun!(sudo $path init --id $id --host "$(curl ipinfo.io/ip)")
+            .map_err(|e| format!("Error while initing mixnode with {} error", e))?;
+        info!("Init result: {}", res);
         Ok(())
     }
 
@@ -200,10 +238,7 @@ impl NymUpdater {
         let temp_defined_asset = &NymReleaseAssets::MixNode;
 
         let current_asset_state = self.current_asset_state(temp_defined_asset).await?;
-        info!("Current asset state is {:?}", current_asset_state);
         let current_asset_version = self.current_asset_version(temp_defined_asset).await?;
-        info!("Current asset version is {}", current_asset_version);
-
         let latest_asset_version = self.latest_asset_version(temp_defined_asset).await?;
         let latest_target_asset_path = self.latest_target_asset_path(temp_defined_asset).await?;
 
@@ -225,6 +260,8 @@ impl NymUpdater {
             }
         }
 
+        self.init_node_with_path(latest_target_asset_path.clone())
+            .await?;
         self.update_systemd_file(temp_defined_asset, latest_target_asset_path)
             .await?;
 
