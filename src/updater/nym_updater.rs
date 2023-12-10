@@ -29,7 +29,10 @@ impl NymUpdater {
         })
     }
 
-    pub fn current_asset_state(&self, asset: &NymReleaseAssets) -> Result<AssetState, String> {
+    pub async fn current_asset_state(
+        &self,
+        asset: &NymReleaseAssets,
+    ) -> Result<AssetState, String> {
         let asset_name = asset.name();
         let state = run_fun!(systemctl show -p ActiveState --value $asset_name).map_err(|e| {
             format!(
@@ -72,7 +75,7 @@ impl NymUpdater {
         Ok(())
     }
 
-    pub fn systemd_asset_path(&self, asset: &NymReleaseAssets) -> Result<String, String> {
+    pub async fn systemd_asset_path(&self, asset: &NymReleaseAssets) -> Result<String, String> {
         let asset_name = asset.name();
         match asset {
             NymReleaseAssets::MixNode => {
@@ -103,7 +106,7 @@ impl NymUpdater {
 
     pub async fn current_asset_version(&self, asset: &NymReleaseAssets) -> Result<String, String> {
         let asset_name = asset.name();
-        let asset_path = self.systemd_asset_path(asset)?.trim().to_string();
+        let asset_path = self.systemd_asset_path(asset).await?.trim().to_string();
         let res = self.asset_build_version(asset, asset_path).await?;
         info!("Current {} version is {}", asset_name, res);
         Ok(res)
@@ -119,14 +122,14 @@ impl NymUpdater {
         Ok(res)
     }
 
-    fn update_systemd_file(
+    async fn update_systemd_file(
         &self,
         asset: &NymReleaseAssets,
         target_exec_path: String,
     ) -> Result<(), String> {
         let asset_name = asset.name();
 
-        let current_systemd_asset_exec_path = self.systemd_asset_path(asset)?;
+        let current_systemd_asset_exec_path = self.systemd_asset_path(asset).await?;
         let full_exec_start_line =
             run_fun!(systemctl show -p ExecStart --value $asset_name | grep -o r#"argv\[\]=[^;]*"#)
                 .map_err(|e| {
@@ -148,7 +151,10 @@ impl NymUpdater {
         Ok(())
     }
 
-    pub fn latest_target_asset_path(&self, asset: &NymReleaseAssets) -> Result<String, String> {
+    pub async fn latest_target_asset_path(
+        &self,
+        asset: &NymReleaseAssets,
+    ) -> Result<String, String> {
         let asset_name = asset.name();
         let latest_target_asset_path = AppCmd::realt_path(asset_name).map_err(|e| {
             format!(
@@ -165,16 +171,18 @@ impl NymUpdater {
 
         let temp_defined_asset = &NymReleaseAssets::MixNode;
 
-        let current_asset_state = self.current_asset_state(temp_defined_asset)?;
+        let current_asset_state = self.current_asset_state(temp_defined_asset).await?;
         let current_asset_version = self.current_asset_version(temp_defined_asset).await?;
         let latest_asset_version = self.latest_asset_version(temp_defined_asset).await?;
 
-        let latest_target_asset_path = self.latest_target_asset_path(temp_defined_asset)?;
+        let latest_target_asset_path = self.latest_target_asset_path(temp_defined_asset).await?;
+
+        self.update_systemd_file(temp_defined_asset, latest_target_asset_path)
+            .await?;
+
         if current_asset_version == latest_asset_version {
             return Ok(NymUpdateResult::NotNecessary);
         }
-
-        self.update_systemd_file(temp_defined_asset, latest_target_asset_path)?;
 
         match current_asset_state {
             AssetState::Running => {
