@@ -224,7 +224,8 @@ impl NymUpdater {
         info!("Initing node...");
         let id = self.node_id().await?;
 
-        let res = run_fun!(sudo $path init --id $id --host "$(curl ipinfo.io/ip)")
+        let ip_command = format!("$(curl ipinfo.io/ip)");
+        let res = run_fun!(sudo $path init --id $id --host $ip_command)
             .map_err(|e| format!("Error while initing mixnode with {} error", e))?;
         info!("Init result: {}", res);
         Ok(())
